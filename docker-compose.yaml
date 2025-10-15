@@ -1,0 +1,138 @@
+services:
+  # ======================
+  # Airflow + Postgres
+  # ======================
+  postgres:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PW}
+      POSTGRES_DB: ${POSTGRES_DB}
+    volumes:
+      - slo_ex_postgres_data:/var/lib/postgresql/data
+
+  airflow:
+    image: apache/airflow:3.1.0
+    depends_on:
+      - postgres
+    environment:
+      AIRFLOW__CORE__EXECUTOR: LocalExecutor
+      AIRFLOW__CORE__FERNET_KEY: ${FERNET_KEY}
+      AIRFLOW__CORE__SIMPLE_AUTH_MANAGER_ALL_ADMINS: "True"
+      AIRFLOW__CORE__SIMPLE_AUTH_MANAGER_USERS: "${AIRFLOW_USER}:${AIRFLOW_PW}" # use comma for more users
+      AIRFLOW__API__PORT: ${AIRFLOW_WEBSERVER_PORT}
+      AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: ${AIRFLOW_SQL_ALCHEMY_CONN}
+
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./dags:/opt/airflow/dags
+    command: >
+      bash -lc "airflow db migrate &&
+        (airflow api-server --port 8080 &) &&
+        (airflow scheduler &) &&
+        (airflow dag-processor &) &&
+        (airflow triggerer &) &&
+        tail -f /dev/null
+      "
+
+  # ======================
+  # Kafka Stack
+  # ======================
+  zookeeper:
+    image: confluentinc/cp-zookeeper:7.4.10
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+
+  kafka:
+    image: confluentinc/cp-kafka:7.4.10
+    depends_on:
+      - zookeeper
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+    ports:
+      - "9092:9092"
+
+  kafka-ui:
+    image: provectuslabs/kafka-ui:latest
+    depends_on:
+      - kafka
+    environment:
+      KAFKA_CLUSTERS_0_NAME: local
+      KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafka:9092
+    ports:
+      - "8085:8080"
+
+  # ======================
+  # Spark Cluster
+  # ======================
+  spark-master:
+    image: apache/spark:latest
+    container_name: spark-master
+    command: /opt/spark/bin/spark-class org.apache.spark.deploy.master.Master --host spark-master
+    ports:
+      - "7077:7077"
+      - "8081:8080"
+    environment:
+      - SPARK_MODE=master
+      - SPARK_MASTER_HOST=spark-master
+
+  spark-worker-1:
+    image: apache/spark:latest
+    container_name: spark-worker-1
+    depends_on:
+      - spark-master
+    command: /opt/spark/bin/spark-class org.apache.spark.deploy.worker.Worker spark://spark-master:7077
+    environment:
+      - SPARK_MODE=worker
+      - SPARK_WORKER_CORES=2
+      - SPARK_WORKER_MEMORY=4G
+
+  spark-worker-2:
+    image: apache/spark:latest
+    container_name: spark-worker-2
+    depends_on:
+      - spark-master
+    command: /opt/spark/bin/spark-class org.apache.spark.deploy.worker.Worker spark://spark-master:7077
+    environment:
+      - SPARK_MODE=worker
+      - SPARK_WORKER_CORES=2
+      - SPARK_WORKER_MEMORY=4G
+
+
+  # ======================
+  # ClickHouse
+  # ======================
+  clickhouse:
+    image: clickhouse:latest
+    ports:
+      - "8123:8123"
+      - "9000:9000"
+    volumes:
+      - slo_ex_clickhouse_data:/var/lib/clickhouse
+
+  # ======================
+  # Grafana
+  # ======================
+  grafana:
+    image: grafana/grafana:latest
+    depends_on:
+      - clickhouse
+    ports:
+      - "3000:3000"
+    environment:
+      - GF_SECURITY_ADMIN_USER=${GF_USER}
+      - GF_SECURITY_ADMIN_PASSWORD=${GF_PW}
+    volumes:
+      - slo_ex_grafana_data:/var/lib/grafana
+
+# ======================
+# Volumes
+# ======================
+volumes:
+  slo_ex_postgres_data:
+  slo_ex_clickhouse_data:
+  slo_ex_grafana_data:
