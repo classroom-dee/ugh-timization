@@ -26,7 +26,7 @@ services:
     ports:
       - "8080:8080"
     volumes:
-      - ./dags:/opt/airflow/dags
+      - ./airflow:/opt/airflow
     command: >
       bash -lc "airflow db migrate &&
         (airflow api-server --port 8080 &) &&
@@ -55,6 +55,8 @@ services:
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
     ports:
       - "9092:9092"
+    volumes:
+      - slo_ex_kafka_data:/var/lib/kafka/data # persistence, need retention policy
 
   kafka-ui:
     image: provectuslabs/kafka-ui:latest
@@ -79,6 +81,8 @@ services:
     environment:
       - SPARK_MODE=master
       - SPARK_MASTER_HOST=spark-master
+    volumes:
+      - slo_ex_spark_checkpoints:/checkpoints # for Spark Structured Streaming
 
   spark-worker-1:
     image: apache/spark:latest
@@ -90,6 +94,8 @@ services:
       - SPARK_MODE=worker
       - SPARK_WORKER_CORES=2
       - SPARK_WORKER_MEMORY=4G
+    volumes:
+      - slo_ex_spark_checkpoints:/checkpoints
 
   spark-worker-2:
     image: apache/spark:latest
@@ -101,6 +107,8 @@ services:
       - SPARK_MODE=worker
       - SPARK_WORKER_CORES=2
       - SPARK_WORKER_MEMORY=4G
+    volumes:
+      - slo_ex_spark_checkpoints:/checkpoints
 
 
   # ======================
@@ -136,3 +144,5 @@ volumes:
   slo_ex_postgres_data:
   slo_ex_clickhouse_data:
   slo_ex_grafana_data:
+  slo_ex_kafka_data:
+  slo_ex_spark_checkpoints:
