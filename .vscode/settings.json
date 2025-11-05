@@ -1,0 +1,8 @@
+{
+    "editor.formatOnSave": true,
+    "[python]": {
+        "editor.defaultFormatter": "ms-python.black-formatter",
+        "editor.indentSize": "tabSize"
+    },
+    "python.defaultInterpreterPath": "${workspaceFolder}/.venv/bin/python"
+}

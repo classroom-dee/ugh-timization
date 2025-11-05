@@ -43,6 +43,9 @@ services:
     image: confluentinc/cp-zookeeper:7.4.10
     environment:
       ZOOKEEPER_CLIENT_PORT: 2181
+    volumes:
+      - slo_ex_zk_data:/var/lib/zookeeper/data
+      - slo_ex_zk_log:/var/lib/zookeeper/log
 
   kafka:
     image: confluentinc/cp-kafka:7.4.10
@@ -51,7 +54,10 @@ services:
     environment:
       KAFKA_BROKER_ID: 1
       KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
-      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: INTERNAL:PLAINTEXT,EXTERNAL:PLAINTEXT
+      KAFKA_LISTENERS: INTERNAL://0.0.0.0:29092,EXTERNAL://0.0.0.0:9092
+      KAFKA_ADVERTISED_LISTENERS: INTERNAL://kafka:29092,EXTERNAL://localhost:9092
+      KAFKA_INTER_BROKER_LISTENER_NAME: INTERNAL
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
     ports:
       - "9092:9092"
@@ -110,7 +116,6 @@ services:
     volumes:
       - slo_ex_spark_checkpoints:/checkpoints
 
-
   # ======================
   # ClickHouse
   # ======================
@@ -145,4 +150,6 @@ volumes:
   slo_ex_clickhouse_data:
   slo_ex_grafana_data:
   slo_ex_kafka_data:
+  slo_ex_zk_data:
+  slo_ex_zk_log:
   slo_ex_spark_checkpoints:
