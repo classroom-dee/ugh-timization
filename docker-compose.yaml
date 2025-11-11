@@ -133,7 +133,8 @@ services:
   grafana:
     image: grafana/grafana:latest
     depends_on:
-      - clickhouse
+      # - clickhouse
+      - prometheus
     ports:
       - "3000:3000"
     environment:
@@ -141,6 +142,51 @@ services:
       - GF_SECURITY_ADMIN_PASSWORD=${GF_PW}
     volumes:
       - slo_ex_grafana_data:/var/lib/grafana
+
+  # ======================
+  # Prometheus
+  # ======================
+  prometheus:
+    image: prom/prometheus:v2.55.0
+    volumes:
+      - ./prometheus/prometheus.yaml:/etc/prometheus/prometheus.yml:ro
+    ports:
+      - "9090:9090"
+
+  # ======================
+  # Fakers Prod / Cons
+  # ======================
+  producer:
+    build:
+      context: ./faker
+      dockerfile: prod.Dockerfile
+    image: xuanminator/slo-test-prod
+    ports:
+      - "8000:8000"
+    environment:
+      - BROKERS=${BROKERS}
+      - TOPIC=${TOPIC}
+      - RATE=${RATE}
+      - PAYLOAD=${PAYLOAD}
+      - PROD_METRICS_PORT=${PROD_METRICS_PORT}
+    depends_on:
+      - prometheus
+      - kafka
+  consumer:
+    build:
+      context: ./faker
+      dockerfile: cons.Dockerfile
+    image: xuanminator/slo-test-cons
+    ports:
+      - "8001:8001"
+    depends_on:
+      - producer
+      - kafka
+    environment:
+      - BROKERS=${BROKERS}
+      - TOPIC=${TOPIC}
+      - CONS_METRICS_PORT=${CONS_METRICS_PORT}
+      - GROUP=${GROUP}
 
 # ======================
 # Volumes

@@ -1,2 +1,5 @@
 faker
 confluent-kafka
+prometheus-client
+orjson
+numpy
