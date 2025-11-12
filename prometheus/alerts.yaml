@@ -1,0 +1,20 @@
+groups:
+- name: kafka-bottleneck
+  rules:
+  - alert: ConsumerLagGrowing
+    expr: increase(kafka_consumer_lag[5m]) > 0 and kafka_consumer_lag > 1000
+    for: 5m
+    labels:
+      severity: warning
+    annotations:
+      summary: "Consumer lag is growing"
+      description: "Lag increased in the last 5m and is now > 1000."
+  - alert: ProducerAckLatencyHigh
+    expr: histogram_quantile(0.95, sum by (le) (rate(kafka_producer_ack_latency_seconds_bucket[5m]))) > 0.2
+    for: 5m
+    labels:
+      severity: warning
+    annotations:
+      summary: "High producer ack latency (p95)"
+      description: "p95 ack latency > 200ms for 5m."
+

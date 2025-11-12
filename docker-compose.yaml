@@ -59,6 +59,9 @@ services:
       KAFKA_ADVERTISED_LISTENERS: INTERNAL://kafka:29092,EXTERNAL://localhost:9092
       KAFKA_INTER_BROKER_LISTENER_NAME: INTERNAL
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_LOG_RETENTION_BYTES: 85899345920 # 80 GB per partition
+      # KAFKA_LOG_RETENTION_MS: -1               # disable time-based retention
+      KAFKA_LOG_CLEANUP_POLICY: delete
     ports:
       - "9092:9092"
     volumes:
@@ -150,6 +153,7 @@ services:
     image: prom/prometheus:v2.55.0
     volumes:
       - ./prometheus/prometheus.yaml:/etc/prometheus/prometheus.yml:ro
+      - ./prometheus/alerts.yaml:/etc/prometheus/alerts.yml:ro
     ports:
       - "9090:9090"
 

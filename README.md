@@ -23,6 +23,8 @@
 - Kafka UI → http://localhost:8085
 - Spark Master UI → http://localhost:8081
 - Grafana → http://localhost:3000
+- Prometheus → http://localhost:9090
 
 ### Future Plan
 - Migrate to GCP
+- Should offsets have retention policy?
